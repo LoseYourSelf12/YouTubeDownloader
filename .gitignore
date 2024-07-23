@@ -3,7 +3,7 @@ build/
 dist/
 ffmpeg-2024-07-22-git-172da370e7-essentials_build/
 vid/
-config.json
+# config.json
 saves.json
 **.spec
 test.py

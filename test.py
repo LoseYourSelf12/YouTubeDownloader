@@ -130,6 +130,7 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, 'Ошибка', 'Выберите папку для скачивания.')
             return
         
+        
         self.download_button.setEnabled(False)
         
         self.current_thread = DownloadThread(url, self.selected_quality, self.download_path)

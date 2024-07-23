@@ -6,3 +6,4 @@ vid/
 config.json
 saves.json
 **.spec
+test.py

@@ -6,11 +6,12 @@ import yt_dlp
 from PyQt6.QtWidgets import (QMessageBox, QWidget, QVBoxLayout, 
                              QMainWindow, QCheckBox, QPushButton,
                              QLineEdit, QProgressBar, QFileDialog, 
-                             QApplication)
+                             QApplication, QLabel)
 
 
 from classes.MessageBoxWarning import MessageBoxWarning
 from classes.DownloadThread import DownloadThread
+from classes.DeleteVideosDialog import DeleteVideosDialog
 
 
 # Load configuration
@@ -38,6 +39,10 @@ class MainWindow(QMainWindow):
         self.setGeometry(100, 100, 600, 400)
         
         self.initUI()
+
+        self.video_info = []
+
+        self.load_saved_videos()
     
     def initUI(self):
         layout = QVBoxLayout()
@@ -45,6 +50,10 @@ class MainWindow(QMainWindow):
         self.url_input = QLineEdit(self)
         self.url_input.setPlaceholderText('Введите ссылку на видео')
         layout.addWidget(self.url_input)
+
+        self.vid_name = QLineEdit(self)
+        self.vid_name.setPlaceholderText('Введите любое название')
+        layout.addWidget(self.vid_name)
         
         self.quality_checkboxes = []
         for quality in ['480', '720', '1080']:
@@ -53,8 +62,8 @@ class MainWindow(QMainWindow):
             layout.addWidget(checkbox)
             self.quality_checkboxes.append(checkbox)
         
-        self.download_path_input = QLineEdit(self)
-        self.download_path_input.setPlaceholderText('Выберите путь для скачивания')
+        self.download_path_input = QLabel(self)
+        self.download_path_input.setText('Select folder')
         layout.addWidget(self.download_path_input)
         
         select_path_button = QPushButton('Выбрать папку', self)
@@ -64,14 +73,20 @@ class MainWindow(QMainWindow):
         self.download_button = QPushButton('Скачать', self)
         self.download_button.clicked.connect(self.download_video)
         layout.addWidget(self.download_button)
+
+        # Кнопка для удаления скачанных видео
+        self.delete_videos_button = QPushButton("Удалить скачанные видео", self)
+        self.delete_videos_button.clicked.connect(self.delete_videos)
+        layout.addWidget(self.delete_videos_button)
         
         self.progress_bar = QProgressBar(self)
         self.progress_bar.setValue(0)
         layout.addWidget(self.progress_bar)
-        
-        # self.delete_button = QPushButton('Удалить все видео', self)
-        # self.delete_button.clicked.connect(self.delete_videos)
-        # layout.addWidget(self.delete_button)
+
+        self.warning_lable = QLabel(self)
+        self.warning_lable.setText('Errors not occurred')
+        layout.addWidget(self.warning_lable)
+
 
         container = QWidget()
         container.setLayout(layout)
@@ -99,24 +114,32 @@ class MainWindow(QMainWindow):
         self.progress_bar.setValue(percent)
 
     def handle_error(self, error_message):
-        try:
-            self.download_video()
-        except AttributeError:
-            QMessageBox.warning(self, 'Done', 'Vide download!')
-        except Exception:
-            self.download_video()
-        # reply = QMessageBox.warning(self, 'Ошибка', error_message)
-    
-    # def handle_finish(self, message):
-    #     QMessageBox.information(self, 'Downloaded', message)
-    #     self.download_button.setEnabled(True)
-    #     self.progress_bar.setValue(0)
-        
+        self.warning_lable.setText(str(error_message))
+
+    def delete_videos(self):
+        dialog = DeleteVideosDialog(self.video_info)
+        if dialog.exec():
+            self.video_info = dialog.get_updated_video_info()
+            self.save_video_info()
+
+    def save_video_info(self):
+        with open("saves.json", "w") as f:
+            json.dump(self.video_info, f, indent=4, ensure_ascii=False)
+
+    def load_saved_videos(self):
+        if os.path.exists("saves.json"):
+            with open("saves.json", "r") as f:
+                self.video_info = json.load(f)
 
     def download_video(self):
         url = self.url_input.text().strip()
+        vid_name = self.vid_name.text().replace(' ', '_')
         if not url:
             QMessageBox.warning(self, 'Ошибка', 'Введите URL видео.')
+            return
+        
+        if not vid_name:
+            QMessageBox.warning(self, 'Ошибка', 'Введите название видео.')
             return
         
         if not self.selected_quality:
@@ -127,13 +150,20 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, 'Ошибка', 'Выберите папку для скачивания.')
             return
         
-        # self.download_button.setEnabled(False)
+        self.current_thread = DownloadThread(url, self.selected_quality, self.download_path, FFMPEG_PATH, vid_name)
+
+        # yt = yt_dlp.YoutubeDL().extract_info(url, download=False)
+        video_info = {
+                "title": vid_name,
+                "path": os.path.join(self.download_path, f"{vid_name}.mp4")
+            }
         
-        self.current_thread = DownloadThread(url, self.selected_quality, self.download_path, FFMPEG_PATH)
+
         self.current_thread.progress.connect(self.update_progress)
         self.current_thread.error.connect(self.handle_error)
-        # self.current_thread.finished.connect(self.handle_finish)
         self.current_thread.start()
+        self.video_info.append(video_info)
+        self.save_video_info()
 
 
 def main():

@@ -1,9 +1,9 @@
 classes/__pycache__/
 build/
 dist/
-ffmpeg-2024-07-22-git-172da370e7-essentials_build/
+ffmpeg-2024-07-22-git-172da370e7-essentials_build.7z
 vid/
-# config.json
+config.json
 saves.json
 **.spec
 test.py

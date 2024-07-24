@@ -83,10 +83,25 @@ class MainWindow(QMainWindow):
         self.progress_bar.setValue(0)
         layout.addWidget(self.progress_bar)
 
+        self.current_speed_lable = QLabel(self)
+        self.current_speed_lable.setText('Current speed: ?')
+        layout.addWidget(self.current_speed_lable)
+
+        self.average_speed_lable = QLabel(self)
+        self.average_speed_lable.setText('Average speed: ?')
+        layout.addWidget(self.average_speed_lable)
+
+        self.elapsed_time_lable = QLabel(self)
+        self.elapsed_time_lable.setText('Elapsed time: ?')
+        layout.addWidget(self.elapsed_time_lable)
+
+        self.total_size_lable = QLabel(self)
+        self.total_size_lable.setText('Total size: ?')
+        layout.addWidget(self.total_size_lable)
+
         self.warning_lable = QLabel(self)
         self.warning_lable.setText('Errors not occurred')
         layout.addWidget(self.warning_lable)
-
 
         container = QWidget()
         container.setLayout(layout)
@@ -113,8 +128,21 @@ class MainWindow(QMainWindow):
     def update_progress(self, percent):
         self.progress_bar.setValue(percent)
 
+    def update_current_speed(self, current_speed):
+        self.current_speed_lable.setText(f'Current speed: {current_speed}')
+
+    def update_average_speed(self, average_speed):
+        self.average_speed_lable.setText(f'Average speed: {average_speed} seconds left')
+    
+    def update_elapsed_time(self, elapsed_time):
+        self.elapsed_time_lable.setText(f'Elapsed time: {elapsed_time} seconds')
+
+    def update_total_size(self, total_size):
+        self.total_size_lable.setText(f'Total size: {total_size} bytes')
+
     def handle_error(self, error_message):
-        self.warning_lable.setText(str(error_message))
+        self.warning_lable.setText('Error occurred: ' + str(error_message))
+        self.download_video()
 
     def delete_videos(self):
         dialog = DeleteVideosDialog(self.video_info)
@@ -152,14 +180,16 @@ class MainWindow(QMainWindow):
         
         self.current_thread = DownloadThread(url, self.selected_quality, self.download_path, FFMPEG_PATH, vid_name)
 
-        # yt = yt_dlp.YoutubeDL().extract_info(url, download=False)
         video_info = {
                 "title": vid_name,
                 "path": os.path.join(self.download_path, f"{vid_name}.mp4")
             }
         
-
         self.current_thread.progress.connect(self.update_progress)
+        self.current_thread.current_speed.connect(self.update_current_speed)
+        self.current_thread.average_speed.connect(self.update_average_speed)
+        self.current_thread.elapsed_time.connect(self.update_elapsed_time)
+        self.current_thread.total_size.connect(self.update_total_size)
         self.current_thread.error.connect(self.handle_error)
         self.current_thread.start()
         self.video_info.append(video_info)

@@ -65,7 +65,11 @@ class DownloadThread(QThread):
             percent = int(d.get('downloaded_bytes', 0) / d.get('total_bytes', 1) * 100)
             self.progress.emit(percent)
             self.current_speed.emit(f'{d.get("speed", 0)} bytes/s')
-            self.average_speed.emit(d.get('eta', 0))
+            try:
+                self.average_speed.emit(d.get('eta', 0))
+            except Exception as e:
+                self.average_speed.emit(0.0)
+            
             self.elapsed_time.emit(d.get('elapsed', 0))
             self.total_size.emit(d.get('total_bytes', 0))
         if d['status'] == 'finished':

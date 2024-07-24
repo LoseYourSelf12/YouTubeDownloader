@@ -6,10 +6,10 @@ from PyQt6.QtCore import QThread, pyqtSignal
 
 class DownloadThread(QThread):
     progress = pyqtSignal(int)
-    current_speed = pyqtSignal()
-    average_speed = pyqtSignal()
-    elapsed_time = pyqtSignal()
-    total_size = pyqtSignal()
+    current_speed = pyqtSignal(str)
+    average_speed = pyqtSignal(float)
+    elapsed_time = pyqtSignal(float)
+    total_size = pyqtSignal(int)
     error = pyqtSignal(str)
 
     def __init__(self, url, quality, download_path, ffmpeg_path, vid_name, *args, **kwargs):
@@ -51,12 +51,11 @@ class DownloadThread(QThread):
                 self.downloaded = True
                 break
             except yt_dlp.utils.ExtractorError as e:
-                self.error = e
+                self.error.emit(str(e))
                 break
             except yt_dlp.utils.DownloadError as e:
-                self.error = e
+                self.error.emit(str(e))
                 break
-            
             except Exception as e:
                 print(str(e))
                 continue
@@ -65,11 +64,12 @@ class DownloadThread(QThread):
         if d['status'] == 'downloading':
             percent = int(d.get('downloaded_bytes', 0) / d.get('total_bytes', 1) * 100)
             self.progress.emit(percent)
-            self.current_speed = d.get('speed', 0)
-            self.average_speed = d.get('eta', 0)
-            self.elapsed_time = d.get('elapsed', 0)
-            self.total_size = d.get('total_bytes', 0)
+            self.current_speed.emit(f'{d.get("speed", 0)} bytes/s')
+            self.average_speed.emit(d.get('eta', 0))
+            self.elapsed_time.emit(d.get('elapsed', 0))
+            self.total_size.emit(d.get('total_bytes', 0))
         if d['status'] == 'finished':
             self.downloaded = True
         if d['status'] == 'error':
-            self.error = d.get('error')
+            self.error.emit(str(d.get('error')))
+
